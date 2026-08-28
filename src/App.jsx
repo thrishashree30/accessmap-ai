@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
 import "leaflet/dist/leaflet.css";
 function CampusMap({ selectedRoute, obstacleReported }) {
@@ -86,6 +86,86 @@ function calculateAccessibilityScore(route) {
   return Math.max(0, Math.min(100, score));
 }
 function App() {
+  const [changePercent, setChangePercent] = useState(null);
+  const [changeStatus, setChangeStatus] = useState("Analyzing...");
+  useEffect(() => {
+  const previousImage = new Image();
+  const latestImage = new Image();
+
+  previousImage.src = "/sentinel-campus-before.jpg";
+  latestImage.src = "/sentinel-campus.jpg";
+
+  const compareImages = () => {
+    if (!previousImage.complete || !latestImage.complete) {
+      return;
+    }
+
+    const width = 256;
+    const height = 256;
+
+    const canvas1 = document.createElement("canvas");
+    const canvas2 = document.createElement("canvas");
+
+    canvas1.width = width;
+    canvas1.height = height;
+
+    canvas2.width = width;
+    canvas2.height = height;
+
+    const ctx1 = canvas1.getContext("2d");
+    const ctx2 = canvas2.getContext("2d");
+
+    ctx1.drawImage(previousImage, 0, 0, width, height);
+    ctx2.drawImage(latestImage, 0, 0, width, height);
+
+    const image1 = ctx1.getImageData(0, 0, width, height);
+    const image2 = ctx2.getImageData(0, 0, width, height);
+
+    let changedPixels = 0;
+    const totalPixels = width * height;
+
+    for (let i = 0; i < image1.data.length; i += 4) {
+      const redDifference = Math.abs(
+        image1.data[i] - image2.data[i]
+      );
+
+      const greenDifference = Math.abs(
+        image1.data[i + 1] - image2.data[i + 1]
+      );
+
+      const blueDifference = Math.abs(
+        image1.data[i + 2] - image2.data[i + 2]
+      );
+
+      const difference =
+        (redDifference + greenDifference + blueDifference) / 3;
+
+      if (difference > 30) {
+        changedPixels++;
+      }
+    }
+
+    const percentage =
+      (changedPixels / totalPixels) * 100;
+
+    const roundedPercentage = Number(
+      percentage.toFixed(1)
+    );
+
+    setChangePercent(roundedPercentage);
+
+    if (roundedPercentage >= 15) {
+      setChangeStatus("Significant change detected");
+    } else if (roundedPercentage >= 5) {
+      setChangeStatus("Potential surface change detected");
+    } else {
+      setChangeStatus("No significant change detected");
+    }
+  };
+
+  previousImage.onload = compareImages;
+  latestImage.onload = compareImages;
+}, []);
   const [screen, setScreen] = useState("home");
   const [need, setNeed] = useState("Wheelchair");
   const [destination, setDestination] = useState("");
@@ -175,13 +255,30 @@ const routeScores = {
 
           <div className="satellite-analysis-card">
 
-            <div className="satellite-image">
-  <img
-    src="/sentinel-campus.jpg"
-    alt="Sentinel-2 satellite observation"
-  />
+            <div className="satellite-comparison">
 
-  <span>Sentinel-2 Satellite Observation</span>
+  <div className="satellite-frame">
+    <span className="image-label">PREVIOUS OBSERVATION</span>
+
+    <img
+      src="/sentinel-campus-before.jpg"
+      alt="Previous Sentinel-2 observation"
+    />
+
+    <small>Previous observation</small>
+  </div>
+
+  <div className="satellite-frame">
+    <span className="image-label">LATEST OBSERVATION</span>
+
+    <img
+      src="/sentinel-campus.jpg"
+      alt="Latest Sentinel-2 observation"
+    />
+
+    <small>Latest observation</small>
+  </div>
+
 </div>
 
             <div className="analysis-status">
@@ -190,28 +287,32 @@ const routeScores = {
                 ● ANALYSIS COMPLETE
               </span>
 
-              <h3>Potential pathway change detected</h3>
+              <h3>
+  {changeStatus}
+</h3>
 
               <p>
-                A recent change has been identified near
-                the selected route.
-              </p>
+  Sentinel-2 observations were compared to estimate
+  potential surface changes near the selected route.
+</p>
 
               <div className="analysis-grid">
 
                 <div>
                   <span>Observation</span>
-                  <strong>Recent</strong>
+<strong>Sentinel-2</strong>
                 </div>
 
                 <div>
                   <span>Change Type</span>
-                  <strong>Construction</strong>
+<strong>Surface Change</strong>
                 </div>
 
                 <div>
-                  <span>Impact</span>
-                  <strong>Medium</strong>
+                  <span>Change %</span>
+<strong>
+  {changePercent !== null ? `${changePercent}%` : "Analyzing..."}
+</strong>
                 </div>
 
               </div>

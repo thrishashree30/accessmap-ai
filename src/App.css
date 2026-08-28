@@ -1018,3 +1018,46 @@ button {
   border-radius: 18px;
   display: block;
 }
+.satellite-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.satellite-frame {
+  position: relative;
+  overflow: hidden;
+  background: #f5f7fb;
+  border-radius: 16px;
+  border: 1px solid #dfe5ee;
+}
+
+.satellite-frame img {
+  width: 100%;
+  height: 280px;
+  object-fit: cover;
+  display: block;
+}
+
+.image-label {
+  display: block;
+  padding: 10px 12px;
+  background: #172033;
+  color: white;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+}
+
+.satellite-frame small {
+  display: block;
+  padding: 9px 12px;
+  color: #697386;
+  font-size: 11px;
+}
+
+@media (max-width: 750px) {
+  .satellite-comparison {
+    grid-template-columns: 1fr;
+  }
+}
