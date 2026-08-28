@@ -136,6 +136,115 @@ const routeScores = {
     "Canteen",
     "Block B",
   ];
+  if (screen === "satellite") {
+  return (
+    <div className="app">
+
+      <header className="header">
+        <div className="logo">
+          <div className="logo-icon">♿</div>
+          <div>
+            <h1>AccessMap AI</h1>
+            <p>Accessible navigation for everyone</p>
+          </div>
+        </div>
+
+        <button
+          className="report-btn"
+          onClick={() => setScreen("report")}
+        >
+          ← Back
+        </button>
+      </header>
+
+      <main className="main">
+        <section className="satellite-page">
+
+          <span className="badge">
+            SATELLITE INTELLIGENCE
+          </span>
+
+          <h2 className="route-title">
+            Monitor accessibility changes
+          </h2>
+
+          <p className="route-subtitle">
+            AI-assisted analysis of recent satellite observations
+            for large-scale route changes.
+          </p>
+
+          <div className="satellite-analysis-card">
+
+            <div className="satellite-image">
+  <img
+    src="/sentinel-campus.jpg"
+    alt="Sentinel-2 satellite observation"
+  />
+
+  <span>Sentinel-2 Satellite Observation</span>
+</div>
+
+            <div className="analysis-status">
+
+              <span className="status-label">
+                ● ANALYSIS COMPLETE
+              </span>
+
+              <h3>Potential pathway change detected</h3>
+
+              <p>
+                A recent change has been identified near
+                the selected route.
+              </p>
+
+              <div className="analysis-grid">
+
+                <div>
+                  <span>Observation</span>
+                  <strong>Recent</strong>
+                </div>
+
+                <div>
+                  <span>Change Type</span>
+                  <strong>Construction</strong>
+                </div>
+
+                <div>
+                  <span>Impact</span>
+                  <strong>Medium</strong>
+                </div>
+
+              </div>
+
+              <button
+                className="find-btn"
+                onClick={() => {
+                  setObstacleReported(true);
+                  setSelectedRoute("B");
+                  setScreen("routes");
+                }}
+              >
+                Update Accessibility Map →
+              </button>
+
+            </div>
+
+          </div>
+
+          <div className="satellite-note">
+            <strong>How it works</strong>
+            <p>
+              Satellite observations identify larger-area
+              environmental or infrastructure changes.
+            </p>
+          </div>
+
+        </section>
+      </main>
+
+    </div>
+  );
+}
 if (screen === "report") {
   return (
     <div className="app">
@@ -170,6 +279,40 @@ if (screen === "report") {
           </p>
 
           {!reportSubmitted ? (
+            <>
+     <div
+  style={{
+    display: "block",
+    padding: "25px",
+    margin: "20px 0",
+    background: "white",
+    border: "3px solid black",
+    borderRadius: "15px",
+  }}
+>
+  <div style={{ fontSize: "35px" }}>🛰️</div>
+
+  <h3>AI-POWERED SATELLITE MONITORING</h3>
+
+  <p>
+    Detect accessibility changes automatically using Sentinel-2 satellite
+    observations.
+  </p>
+
+  <button
+    onClick={() => setScreen("satellite")}
+    style={{
+      padding: "12px 20px",
+      background: "#172033",
+      color: "white",
+      border: "none",
+      borderRadius: "8px",
+      cursor: "pointer",
+    }}
+  >
+    View Satellite Analysis →
+  </button>
+</div>
             <div className="report-card">
 
               <label>📸 Upload Image</label>
@@ -251,6 +394,7 @@ if (screen === "report") {
 </button>
 
             </div>
+            </>
           ) : (
             <div className="ai-result-card">
 
