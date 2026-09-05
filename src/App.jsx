@@ -90,6 +90,9 @@ function App() {
   const [changeStatus, setChangeStatus] = useState("Analyzing...");
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [offlineMode, setOfflineMode] = useState(false);
+  const [voiceActive, setVoiceActive] = useState(false);
+const [voiceMessage, setVoiceMessage] = useState("");
+const [detectedLanguage, setDetectedLanguage] = useState("");
   useEffect(() => {
   const goOnline = () => setIsOffline(false);
   const goOffline = () => setIsOffline(true);
@@ -236,10 +239,121 @@ const routeScores = {
   const activeRouteSource = isOffline
   ? "Saved offline route data"
   : "Live accessibility route data";
+  const speak = (text) => {
+  window.speechSynthesis.cancel();
+
+  const message = new SpeechSynthesisUtterance(text);
+  message.lang = detectedLanguage || "en-IN";
+
+  window.speechSynthesis.speak(message);
+};
+
+const startVoiceAssistant = () => {
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
+    setVoiceMessage("Voice recognition is not supported in this browser.");
+    return;
+  }
+
+  const recognition = new SpeechRecognition();
+
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.lang = "en-IN";
+
+  setVoiceActive(true);
+  setVoiceMessage("Listening...");
+
+  recognition.start();
+
+  recognition.onresult = (event) => {
+    const userSpeech = event.results[0][0].transcript;
+
+    setVoiceMessage(`You said: ${userSpeech}`);
+
+    const text = userSpeech.toLowerCase();
+if (text.includes("home") || text.includes("go home")) {
+  setScreen("home");
+  speak("Going to home page");
+
+} else if (
+  text.includes("find routes") ||
+  text.includes("find roots") ||
+  text.includes("accessible routes") ||
+  text.includes("accessible roots")
+) {
+  setScreen("routes");
+  speak("Opening accessible routes");
+
+} else if (text.includes("report obstacle") || text.includes("report")) {
+  setScreen("report");
+  speak("Opening obstacle report page");
+
+} else if (text.includes("satellite") || text.includes("analysis")) {
+  setScreen("satellite");
+  speak("Opening satellite analysis");
+
+} else if (text.includes("blind") || text.includes("camera")) {
+  setNeed("blind");
+  setScreen("map");
+  speak("Blind assistance mode activated");
+
+} else {
+  speak("Sorry, I did not understand the command");
+}
+  };
+
+  recognition.onerror = () => {
+    setVoiceMessage("Sorry, I could not hear you. Please try again.");
+  };
+
+  recognition.onend = () => {
+    setVoiceActive(false);
+  };
+};
+const VoiceAssistant = () => (
+  <>
+    <button
+      onClick={startVoiceAssistant}
+      style={{
+        position: "fixed",
+        bottom: "25px",
+        right: "25px",
+        padding: "15px 20px",
+        borderRadius: "30px",
+        border: "none",
+        cursor: "pointer",
+        fontSize: "16px",
+        fontWeight: "bold",
+        zIndex: 1000,
+      }}
+    >
+      🎙️ {voiceActive ? "Listening..." : "Voice Assistant"}
+    </button>
+
+    {voiceMessage && (
+      <div
+        style={{
+          position: "fixed",
+          bottom: "90px",
+          right: "25px",
+          padding: "12px 18px",
+          background: "white",
+          borderRadius: "10px",
+          zIndex: 1000,
+        }}
+      >
+        {voiceMessage}
+      </div>
+    )}
+  </>
+);
   if (screen === "satellite") {
   return (
     <div className="app">
-
+<VoiceAssistant />
       <header className="header">
         <div className="logo">
           <div className="logo-icon">♿</div>
@@ -392,6 +506,40 @@ const routeScores = {
 if (screen === "report") {
   return (
     <div className="app">
+      <button
+  onClick={startVoiceAssistant}
+  style={{
+    position: "fixed",
+    bottom: "25px",
+    right: "25px",
+    padding: "15px 20px",
+    borderRadius: "30px",
+    border: "none",
+    cursor: "pointer",
+    fontSize: "16px",
+    fontWeight: "bold",
+    zIndex: 9999
+  }}
+>
+  🎙️ {voiceActive ? "Listening..." : "Voice Assistant"}
+</button>
+
+{voiceMessage && (
+  <div
+    style={{
+      position: "fixed",
+      bottom: "90px",
+      right: "25px",
+      padding: "12px 18px",
+      background: "white",
+      color: "#222",
+      borderRadius: "10px",
+      zIndex: 9999
+    }}
+  >
+    🎙️ {voiceMessage}
+  </div>
+)}
       <header className="header">
         <div className="logo">
           <div className="logo-icon">♿</div>
@@ -783,6 +931,40 @@ if (screen === "report") {
 </button>
           </section>
         </main>
+        <button
+  onClick={startVoiceAssistant}
+  style={{
+    position: "fixed",
+    bottom: "25px",
+    right: "25px",
+    padding: "15px 20px",
+    borderRadius: "30px",
+    border: "none",
+    cursor: "pointer",
+    fontSize: "16px",
+    fontWeight: "bold",
+    zIndex: 9999
+  }}
+>
+  🎙️ {voiceActive ? "Listening..." : "Voice Assistant"}
+</button>
+
+{voiceMessage && (
+  <div
+    style={{
+      position: "fixed",
+      bottom: "90px",
+      right: "25px",
+      padding: "12px 18px",
+      background: "white",
+      color: "#222",
+      borderRadius: "10px",
+      zIndex: 9999
+    }}
+  >
+    🎙️ {voiceMessage}
+  </div>
+)}
       </div>
     );
   }
@@ -916,8 +1098,9 @@ if (screen === "report") {
           </div>
         </section>
       </main>
-    </div>
-  );
+<VoiceAssistant />
+</div>
+);
 }
 
 export default App;
