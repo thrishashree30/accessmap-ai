@@ -55,9 +55,9 @@ async function getSatelliteImage() {
 
             dataFilter: {
               timeRange: {
-                from: "2026-07-28T00:00:00Z",
-                to: "2026-08-28T23:59:59Z",
-              },
+  from: "2026-06-28T00:00:00Z",
+  to: "2026-07-28T23:59:59Z",
+},
 
               mosaickingOrder: "leastCC",
             },
@@ -117,12 +117,12 @@ async function getSatelliteImage() {
     );
 
     fs.writeFileSync(
-      "./server/sentinel-campus.jpg",
+      "./server/sentinel-campus-before.jpg",
       response.data
     );
 
     console.log("✅ Sentinel-2 image downloaded!");
-    console.log("📁 Saved as: server/sentinel-campus.jpg");
+    console.log("📁 Saved as: server/sentinel-campus-before.jpg");
 
   } catch (error) {
     console.error("❌ Sentinel-2 request failed.");

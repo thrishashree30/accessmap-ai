@@ -88,10 +88,24 @@ function calculateAccessibilityScore(route) {
 function App() {
   const [changePercent, setChangePercent] = useState(null);
   const [changeStatus, setChangeStatus] = useState("Analyzing...");
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [offlineMode, setOfflineMode] = useState(false);
   useEffect(() => {
+  const goOnline = () => setIsOffline(false);
+  const goOffline = () => setIsOffline(true);
+
+  window.addEventListener("online", goOnline);
+  window.addEventListener("offline", goOffline);
+
+  return () => {
+    window.removeEventListener("online", goOnline);
+    window.removeEventListener("offline", goOffline);
+  };
+}, []);
+useEffect(() => {
   const previousImage = new Image();
   const latestImage = new Image();
-
+  
   previousImage.src = "/sentinel-campus-before.jpg";
   latestImage.src = "/sentinel-campus.jpg";
 
@@ -216,6 +230,12 @@ const routeScores = {
     "Canteen",
     "Block B",
   ];
+  const connectionStatus = isOffline
+  ? "Offline Mode - Using saved accessibility data"
+  : "Online - Live accessibility updates available";
+  const activeRouteSource = isOffline
+  ? "Saved offline route data"
+  : "Live accessibility route data";
   if (screen === "satellite") {
   return (
     <div className="app">
@@ -236,7 +256,30 @@ const routeScores = {
           ← Back
         </button>
       </header>
-
+<div
+  style={{
+    padding: "10px 20px",
+    margin: "10px 0",
+    borderRadius: "8px",
+    background: isOffline ? "#fff3cd" : "#d1e7dd",
+    color: isOffline ? "#856404" : "#155724",
+    fontWeight: "600",
+    textAlign: "center",
+  }}
+>
+  {isOffline ? "📴 OFFLINE MODE: Using saved accessibility data" : "🟢 ONLINE: Live accessibility updates available"}
+</div>
+<div
+  style={{
+    textAlign: "center",
+    fontSize: "14px",
+    fontWeight: "600",
+    marginBottom: "10px",
+    color: "#475569",
+  }}
+>
+  📍 Route Data Source: {activeRouteSource}
+</div>
       <main className="main">
         <section className="satellite-page">
 
@@ -464,7 +507,35 @@ if (screen === "report") {
                 <option>Lift Unavailable</option>
                 <option>Other</option>
               </select>
+<label>⏳ Obstacle Duration</label>
 
+<select className="report-select">
+  <option>Temporary</option>
+  <option>Permanent</option>
+</select>
+<label>⏰ Expected Clearance</label>
+
+<select className="report-select">
+  <option>Within 1 hour</option>
+  <option>Within 3 hours</option>
+  <option>By end of the day</option>
+  <option>Unknown</option>
+</select>
+<label>📊 Obstacle Status</label>
+
+<select className="report-select">
+  <option>Active</option>
+  <option>Cleared</option>
+  <option>Under Verification</option>
+</select>
+
+<label>🚨 Obstacle Priority</label>
+
+<select className="report-select">
+  <option>Low - Minor inconvenience</option>
+  <option>Medium - Route partially affected</option>
+  <option>High - Route completely blocked</option>
+</select>
               <label>📍 Location</label>
 
               <input
