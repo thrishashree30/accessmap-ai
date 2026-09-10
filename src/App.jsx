@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import "./App.css";
 import "leaflet/dist/leaflet.css";
+import { pipeline } from "@huggingface/transformers";
 function CampusMap({ selectedRoute, obstacleReported }) {
   return (
     <div className="campus-map">
@@ -93,6 +94,8 @@ function App() {
   const [voiceActive, setVoiceActive] = useState(false);
 const [voiceMessage, setVoiceMessage] = useState("");
 const [detectedLanguage, setDetectedLanguage] = useState("");
+const [offlineModel, setOfflineModel] = useState(null);
+const [offlineModelLoading, setOfflineModelLoading] = useState(false);
   useEffect(() => {
   const goOnline = () => setIsOffline(false);
   const goOffline = () => setIsOffline(true);
@@ -104,6 +107,31 @@ const [detectedLanguage, setDetectedLanguage] = useState("");
     window.removeEventListener("online", goOnline);
     window.removeEventListener("offline", goOffline);
   };
+}, []);
+useEffect(() => {
+  const loadOfflineModel = async () => {
+    try {
+      setOfflineModelLoading(true);
+
+      const model = await pipeline(
+  "automatic-speech-recognition",
+  "onnx-community/whisper-tiny",
+  {
+    dtype: "fp16",
+    device: "webgpu"
+  }
+);
+
+      setOfflineModel(model);
+      console.log("Offline voice model ready");
+    } catch (error) {
+      console.error("Offline model error:", error);
+    } finally {
+      setOfflineModelLoading(false);
+    }
+  };
+
+  loadOfflineModel();
 }, []);
 useEffect(() => {
   const previousImage = new Image();
@@ -305,8 +333,10 @@ if (text.includes("home") || text.includes("go home")) {
 }
   };
 
-  recognition.onerror = () => {
-    setVoiceMessage("Sorry, I could not hear you. Please try again.");
+  recognition.onerror = (event) => {
+    console.log("Voice error:", event.error);
+    setVoiceActive(false);
+    setVoiceMessage("Voice recognition unavailable offline.");
   };
 
   recognition.onend = () => {
