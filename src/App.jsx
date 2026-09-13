@@ -93,6 +93,20 @@ function App() {
   const [offlineMode, setOfflineMode] = useState(false);
   const [voiceActive, setVoiceActive] = useState(false);
 const [voiceMessage, setVoiceMessage] = useState("");
+const [favoritePlaces, setFavoritePlaces] = useState(() => {
+  const saved = localStorage.getItem("accessmap-favorites");
+  return saved ? JSON.parse(saved) : [];
+});
+const [caregiver, setCaregiver] = useState(() => {
+  const saved = localStorage.getItem("accessmap-caregiver");
+  return saved ? saved : "";
+});
+useEffect(() => {
+  localStorage.setItem(
+    "accessmap-favorites",
+    JSON.stringify(favoritePlaces)
+  );
+}, [favoritePlaces]);
 const [detectedLanguage, setDetectedLanguage] = useState("");
 const [offlineModel, setOfflineModel] = useState(null);
 const [offlineModelLoading, setOfflineModelLoading] = useState(false);
@@ -115,14 +129,14 @@ useEffect(() => {
 
       const model = await pipeline(
   "automatic-speech-recognition",
-  "onnx-community/whisper-tiny",
+  "onnx-community/whisper-base",
   {
     dtype: "fp16",
     device: "webgpu"
   }
 );
 
-      setOfflineModel(model);
+      setOfflineModel(() => model);
       console.log("Offline voice model ready");
     } catch (error) {
       console.error("Offline model error:", error);
@@ -276,7 +290,135 @@ const routeScores = {
   window.speechSynthesis.speak(message);
 };
 
-const startVoiceAssistant = () => {
+const startVoiceAssistant = async () => {
+  // OFFLINE MODE
+  if (!navigator.onLine) {
+    if (!offlineModel) {
+      setVoiceMessage("Offline voice model is still loading...");
+      return;
+    }
+
+    try {
+      setVoiceActive(true);
+      navigator.vibrate?.(150);
+      setVoiceMessage("Listening offline...");
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+      });
+
+      const recorder = new MediaRecorder(stream);
+      const chunks = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+
+        try {
+          setVoiceMessage("Understanding...");
+
+          const blob = new Blob(chunks, {
+            type: recorder.mimeType,
+          });
+
+          const arrayBuffer = await blob.arrayBuffer();
+          const audioContext = new AudioContext();
+          const audioBuffer =
+            await audioContext.decodeAudioData(arrayBuffer);
+
+          const offlineContext = new OfflineAudioContext(
+            1,
+            Math.ceil(audioBuffer.duration * 16000),
+            16000
+          );
+
+          const source = offlineContext.createBufferSource();
+          source.buffer = audioBuffer;
+          source.connect(offlineContext.destination);
+          source.start();
+
+          const rendered = await offlineContext.startRendering();
+          const audioData = rendered.getChannelData(0);
+
+          const result = await offlineModel(audioData, {
+  language: "english",
+  task: "transcribe",
+});
+
+          const userSpeech = (result.text || "").trim();
+          const text = userSpeech.toLowerCase();
+
+          setVoiceMessage(`You said: ${userSpeech}`);
+
+          if (text.includes("home")) {
+            setScreen("home");
+            speak("Going to home page");
+
+          } else if (
+            text.includes("find routes") ||
+            text.includes("find roots") ||
+            text.includes("accessible routes") ||
+            text.includes("accessible roots")
+          ) {
+            setScreen("routes");
+            speak("Opening accessible routes");
+
+          } else if (
+            text.includes("report obstacle") ||
+            text.includes("report")
+          ) {
+            setScreen("report");
+            speak("Opening obstacle report page");
+
+          } else if (
+            text.includes("satellite") ||
+            text.includes("analysis")
+          ) {
+            setScreen("satellite");
+            speak("Opening satellite analysis");
+
+          } else if (
+            text.includes("blind") ||
+            text.includes("camera")
+          ) {
+            setNeed("blind");
+            setScreen("map");
+            speak("Blind assistance mode activated");
+
+          } else {
+            speak("Sorry, I did not understand the command");
+          }
+
+          await audioContext.close();
+        } catch (error) {
+  console.error("Offline speech error:", error);
+  setVoiceMessage(`Offline error: ${error.message}`);
+} finally {
+          setVoiceActive(false);
+        }
+      };
+
+      recorder.start();
+
+      setTimeout(() => {
+        if (recorder.state === "recording") {
+          recorder.stop();
+        }
+      }, 4000);
+
+    } catch (error) {
+      console.error("Microphone error:", error);
+      setVoiceActive(false);
+      setVoiceMessage("Microphone permission is required.");
+    }
+
+    return;
+  }
+
+  // ONLINE MODE — existing Web Speech API
   const SpeechRecognition =
     window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -292,51 +434,77 @@ const startVoiceAssistant = () => {
   recognition.lang = "en-IN";
 
   setVoiceActive(true);
+  navigator.vibrate?.(150);
   setVoiceMessage("Listening...");
 
-  recognition.start();
+  try {
+    recognition.start();
+  } catch (error) {
+    setVoiceActive(false);
+    setVoiceMessage("Please try again.");
+  }
 
   recognition.onresult = (event) => {
     const userSpeech = event.results[0][0].transcript;
+    const text = userSpeech.toLowerCase().trim();
+    if (
+  text.includes("hey accessmap") ||
+  text.includes("hey access map")
+) {
+  setVoiceMessage("AccessMap is ready. What can I do?");
+  speak("AccessMap is ready. What can I do?");
 
+  setTimeout(() => {
+    startVoiceAssistant();
+  }, 1500);
+
+  return;
+}
     setVoiceMessage(`You said: ${userSpeech}`);
 
-    const text = userSpeech.toLowerCase();
-if (text.includes("home") || text.includes("go home")) {
-  setScreen("home");
-  speak("Going to home page");
+    if (text.includes("home")) {
+      setScreen("home");
+      speak("Going to home page");
 
-} else if (
-  text.includes("find routes") ||
-  text.includes("find roots") ||
-  text.includes("accessible routes") ||
-  text.includes("accessible roots")
-) {
-  setScreen("routes");
-  speak("Opening accessible routes");
+    } else if (
+      text.includes("find routes") ||
+      text.includes("find roots") ||
+      text.includes("accessible routes") ||
+      text.includes("accessible roots")
+    ) {
+      setScreen("routes");
+      speak("Opening accessible routes");
 
-} else if (text.includes("report obstacle") || text.includes("report")) {
-  setScreen("report");
-  speak("Opening obstacle report page");
+    } else if (
+      text.includes("report obstacle") ||
+      text.includes("report")
+    ) {
+      setScreen("report");
+      speak("Opening obstacle report page");
 
-} else if (text.includes("satellite") || text.includes("analysis")) {
-  setScreen("satellite");
-  speak("Opening satellite analysis");
+    } else if (
+      text.includes("satellite") ||
+      text.includes("analysis")
+    ) {
+      setScreen("satellite");
+      speak("Opening satellite analysis");
 
-} else if (text.includes("blind") || text.includes("camera")) {
-  setNeed("blind");
-  setScreen("map");
-  speak("Blind assistance mode activated");
+    } else if (
+      text.includes("blind") ||
+      text.includes("camera")
+    ) {
+      setNeed("blind");
+      setScreen("map");
+      speak("Blind assistance mode activated");
 
-} else {
-  speak("Sorry, I did not understand the command");
-}
+    } else {
+      speak("Sorry, I did not understand the command");
+    }
   };
 
-  recognition.onerror = (event) => {
-    console.log("Voice error:", event.error);
+  recognition.onerror = () => {
     setVoiceActive(false);
-    setVoiceMessage("Voice recognition unavailable offline.");
+    setVoiceMessage("Voice recognition unavailable.");
   };
 
   recognition.onend = () => {
@@ -1101,7 +1269,133 @@ if (screen === "report") {
             ))}
           </div>
         </section>
+        <section className="preferences">
+  <h3>⭐ Favourite Places</h3>
 
+  <p>
+    Save a place for quick accessible navigation.
+  </p>
+
+  <div style={{
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap",
+    marginTop: "15px"
+  }}>
+    {favoritePlaces.map((place) => (
+      <button
+        key={place}
+        onClick={() => {
+          setDestination(place);
+          setScreen("routes");
+        }}
+        style={{
+          padding: "10px 16px",
+          borderRadius: "10px",
+          border: "1px solid #ccc",
+          cursor: "pointer",
+          background: "white"
+        }}
+      >
+        ⭐ {place}
+        <span
+  onClick={(e) => {
+    e.stopPropagation();
+    setFavoritePlaces(
+      favoritePlaces.filter((item) => item !== place)
+    );
+  }}
+  style={{
+    marginLeft: "8px",
+    cursor: "pointer"
+  }}
+>
+  ❌
+</span>
+      </button>
+    ))}
+  </div>
+
+  {destination && !favoritePlaces.includes(destination) && (
+    <button
+      onClick={() =>
+        setFavoritePlaces([...favoritePlaces, destination])
+      }
+      style={{
+        marginTop: "15px",
+        padding: "10px 16px",
+        borderRadius: "10px",
+        border: "none",
+        cursor: "pointer",
+        fontWeight: "bold"
+      }}
+    >
+      ⭐ Save Current Destination
+    </button>
+  )}
+</section>
+<section className="preferences">
+  <h3>👤 Caregiver</h3>
+
+  <p>
+    Add a trusted person for quick access.
+  </p>
+
+  <div style={{
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap",
+    marginTop: "15px"
+  }}>
+    <input
+      type="text"
+      placeholder="Caregiver name or contact"
+      value={caregiver}
+      onChange={(e) => setCaregiver(e.target.value)}
+      style={{
+        padding: "10px",
+        borderRadius: "8px",
+        border: "1px solid #ccc",
+        flex: "1",
+        minWidth: "200px"
+      }}
+    />
+
+    <button
+      onClick={() => {
+  localStorage.setItem("accessmap-caregiver", caregiver);
+  setCaregiver(caregiver);
+  setVoiceMessage("Caregiver saved successfully!");
+}}
+      style={{
+        padding: "10px 16px",
+        borderRadius: "8px",
+        border: "none",
+        cursor: "pointer",
+        fontWeight: "bold"
+      }}
+    >
+      💾 Save Caregiver
+      <button
+  onClick={() => {
+    localStorage.removeItem("accessmap-caregiver");
+    setCaregiver("");
+    setVoiceMessage("Caregiver removed.");
+  }}
+  style={{
+    marginLeft: "8px",
+    padding: "10px 16px",
+    borderRadius: "8px",
+    border: "none",
+    cursor: "pointer",
+    fontWeight: "bold"
+  }}
+>
+  ❌ Remove Caregiver
+</button>
+    </button>
+  </div>
+</section>
         <section className="features">
           <div className="feature-card">
             <span>🤖</span>
