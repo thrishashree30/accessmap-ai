@@ -101,6 +101,7 @@ const [caregiver, setCaregiver] = useState(() => {
   const saved = localStorage.getItem("accessmap-caregiver");
   return saved ? saved : "";
 });
+const [sosActive, setSosActive] = useState(false);
 useEffect(() => {
   localStorage.setItem(
     "accessmap-favorites",
@@ -1395,6 +1396,45 @@ if (screen === "report") {
 </button>
     </button>
   </div>
+</section>
+<section className="preferences">
+  <h3>🆘 Emergency SOS</h3>
+
+  <p>
+    Quickly alert your caregiver when you need priority assistance.
+  </p>
+
+  <button
+    onClick={() => {
+      setSosActive(true);
+      setVoiceMessage(
+  caregiver
+    ? `SOS activated! Caregiver: ${caregiver}`
+    : "SOS activated! No caregiver saved."
+);
+      speak(
+  caregiver
+    ? `SOS activated. Your caregiver is ${caregiver}.`
+    : "SOS activated. No caregiver saved."
+);
+    }}
+    style={{
+      marginTop: "15px",
+      padding: "12px 20px",
+      borderRadius: "10px",
+      border: "none",
+      cursor: "pointer",
+      fontWeight: "bold"
+    }}
+  >
+    🆘 Activate SOS
+  </button>
+
+  {sosActive && (
+    <p style={{ marginTop: "10px", fontWeight: "bold" }}>
+      🔴 SOS Active — Priority assistance requested
+    </p>
+  )}
 </section>
         <section className="features">
           <div className="feature-card">
