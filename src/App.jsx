@@ -1472,14 +1472,14 @@ setCaregiverInput("");
     onClick={() => {
       setSosActive(true);
       setVoiceMessage(
-  caregiver
-    ? `SOS activated! Caregiver: ${caregiver}`
-    : "SOS activated! No caregiver saved."
+  caregivers.length > 0
+    ? `SOS activated! Caregivers: ${caregivers.map((c) => c.name).join(", ")}`
+    : "SOS activated! No caregivers saved."
 );
       speak(
-  caregiver
-    ? `SOS activated. Your caregiver is ${caregiver}.`
-    : "SOS activated. No caregiver saved."
+  caregivers.length > 0
+    ? `SOS activated. Your caregivers are ${caregivers.map((c) => c.name).join(", ")}.`
+    : "SOS activated. No caregivers saved."
 );
     }}
     style={{
