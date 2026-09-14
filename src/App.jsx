@@ -97,10 +97,12 @@ const [favoritePlaces, setFavoritePlaces] = useState(() => {
   const saved = localStorage.getItem("accessmap-favorites");
   return saved ? JSON.parse(saved) : [];
 });
-const [caregiver, setCaregiver] = useState(() => {
-  const saved = localStorage.getItem("accessmap-caregiver");
-  return saved ? saved : "";
+const [caregivers, setCaregivers] = useState(() => {
+  const saved = localStorage.getItem("accessmap-caregivers");
+  return saved ? JSON.parse(saved) : [];
 });
+const [caregiverInput, setCaregiverInput] = useState("");
+const [caregiverPhone, setCaregiverPhone] = useState("");
 const [sosActive, setSosActive] = useState(false);
 useEffect(() => {
   localStorage.setItem(
@@ -1351,8 +1353,8 @@ if (screen === "report") {
     <input
       type="text"
       placeholder="Caregiver name or contact"
-      value={caregiver}
-      onChange={(e) => setCaregiver(e.target.value)}
+      value={caregiverInput}
+      onChange={(e) => setCaregiverInput(e.target.value)}
       style={{
         padding: "10px",
         borderRadius: "8px",
@@ -1361,11 +1363,38 @@ if (screen === "report") {
         minWidth: "200px"
       }}
     />
-
+    <input
+  type="tel"
+  placeholder="Phone number"
+  value={caregiverPhone}
+  onChange={(e) => setCaregiverPhone(e.target.value)}
+  style={{
+    padding: "10px",
+    borderRadius: "8px",
+    border: "1px solid #ccc",
+    flex: "1",
+    minWidth: "200px"
+  }}
+/>
     <button
       onClick={() => {
-  localStorage.setItem("accessmap-caregiver", caregiver);
-  setCaregiver(caregiver);
+  setCaregivers([
+  ...caregivers,
+  {
+    name: caregiverInput,
+    phone: caregiverPhone
+  }
+]);
+localStorage.setItem(
+  "accessmap-caregivers",
+  JSON.stringify([
+  ...caregivers,
+  {
+    name: caregiverInput,
+    phone: caregiverPhone
+  }
+])
+);
   setVoiceMessage("Caregiver saved successfully!");
 }}
       style={{
@@ -1379,8 +1408,9 @@ if (screen === "report") {
       💾 Save Caregiver
       <button
   onClick={() => {
-    localStorage.removeItem("accessmap-caregiver");
-    setCaregiver("");
+    localStorage.removeItem("accessmap-caregivers");
+setCaregivers([]);
+setCaregiverInput("");
     setVoiceMessage("Caregiver removed.");
   }}
   style={{
@@ -1396,6 +1426,40 @@ if (screen === "report") {
 </button>
     </button>
   </div>
+  {caregivers.map((person, index) => (
+  <div
+    key={index}
+    style={{
+      marginTop: "10px",
+      padding: "10px 15px",
+      border: "1px solid #ccc",
+      borderRadius: "8px",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center"
+    }}
+  >
+    👤 {person.name} — 📞 {person.phone}
+
+    <button
+      onClick={() => {
+        const updated = caregivers.filter((_, i) => i !== index);
+        setCaregivers(updated);
+        localStorage.setItem(
+          "accessmap-caregivers",
+          JSON.stringify(updated)
+        );
+      }}
+      style={{
+        border: "none",
+        cursor: "pointer",
+        background: "transparent"
+      }}
+    >
+      ❌
+    </button>
+  </div>
+))}
 </section>
 <section className="preferences">
   <h3>🆘 Emergency SOS</h3>
